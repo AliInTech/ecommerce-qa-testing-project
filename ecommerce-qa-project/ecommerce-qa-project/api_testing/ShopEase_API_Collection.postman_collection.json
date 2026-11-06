@@ -1,0 +1,392 @@
+{
+  "info": {
+    "name": "ShopEase API Collection (Generic E-Commerce API Tests)",
+    "description": "Portfolio QA project collection. Point `base_url` at a free practice API such as https://fakestoreapi.com or https://dummyjson.com. Each request includes test scripts (status code + basic schema assertions).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://fakestoreapi.com" },
+    { "key": "auth_token", "value": "" },
+    { "key": "test_product_id", "value": "1" },
+    { "key": "test_user_id", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "API-01 Get All Products",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/products"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response is an array', function () { pm.expect(pm.response.json()).to.be.an('array'); });",
+                  "pm.test('First item has id, title, price', function () {",
+                  "  const body = pm.response.json();",
+                  "  if (body.length > 0) {",
+                  "    pm.expect(body[0]).to.have.property('id');",
+                  "    pm.expect(body[0]).to.have.property('title');",
+                  "    pm.expect(body[0]).to.have.property('price');",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "API-02 Get Single Valid Product",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/products/{{test_product_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Returned id matches requested id', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(String(body.id)).to.eql(pm.collectionVariables.get('test_product_id'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "API-03 Get Non-Existent Product",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/products/999999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Should NOT be a 500 server error', function () { pm.expect(pm.response.code).to.not.equal(500); });",
+                  "pm.test('Status is 404 or empty/null body (per API behavior)', function () {",
+                  "  if (pm.response.code === 200) {",
+                  "    pm.expect(pm.response.text()).to.satisfy(t => t === 'null' || t === '{}');",
+                  "  } else {",
+                  "    pm.response.to.have.status(404);",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "API-04 Get Products With Limit",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/products?limit=5"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Returned array length is 5 or fewer', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.length).to.be.at.most(5);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "API-05 Get All Categories",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/products/categories"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response is a non-empty array', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "API-06 Login With Valid Credentials",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"mor_2314\",\n  \"password\": \"83r5^_\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response contains a token', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('token');",
+                  "  pm.expect(body.token).to.not.be.empty;",
+                  "  pm.collectionVariables.set('auth_token', body.token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "API-07 Login With Invalid Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"mor_2314\",\n  \"password\": \"wrongPassword123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code indicates auth failure (400/401)', function () {",
+                  "  pm.expect([400,401]).to.include(pm.response.code);",
+                  "});",
+                  "pm.test('No token is returned', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.token).to.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "API-08 Login With Missing Password Field",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"mor_2314\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Should not be a 500 server error', function () { pm.expect(pm.response.code).to.not.equal(500); });",
+                  "pm.test('Status code indicates a client/validation error', function () {",
+                  "  pm.expect(pm.response.code).to.be.at.least(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Cart",
+      "item": [
+        {
+          "name": "API-09 Create a New Cart",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/carts",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 1,\n  \"date\": \"2026-11-06\",\n  \"products\": [ { \"productId\": 1, \"quantity\": 2 } ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 or 201', function () { pm.expect([200,201]).to.include(pm.response.code); });",
+                  "pm.test('Response contains an id', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('id');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "API-10 Get Carts By User",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/carts/user/{{test_user_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response is an array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "API-11 Update an Existing Cart",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/carts/1",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 1,\n  \"date\": \"2026-11-06\",\n  \"products\": [ { \"productId\": 2, \"quantity\": 4 } ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "API-12 Delete a Cart",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/carts/1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "API-13 Get All Users",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/users"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response is an array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "API-14 Get Single User",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/users/{{test_user_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Returned id matches requested id', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(String(body.id)).to.eql(pm.collectionVariables.get('test_user_id'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "API-15 Create a New User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/users",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"riya.sharma+test1@mailinator.com\",\n  \"username\": \"riyasharma\",\n  \"password\": \"Test@1234\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 or 201', function () { pm.expect([200,201]).to.include(pm.response.code); });",
+                  "pm.test('Response contains an id', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('id');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
